@@ -20,11 +20,20 @@ def get_xlsx_data(pathname, index=0):
         二维列表，返回工作薄的数据
     '''
     # 静默状态下打开 Excel
-    app = wx.App(visible=False)
     # 打开所需的工作表
-    book = app.books.open(pathname)
+    app = wx.App(visible=False)
+    try:
+        book = app.books.open(pathname) 
+    except FileNotFoundError:
+        print('文件没有找到！')
+        raise
+    except Exception:
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
     # 返回所需的工作薄
     sht = book.sheets[index]
     # 工作薄的有效数据范围
     rng = sht.range('A1').current_region
-    return rng.value
+    values = rng.value
+    book.close()
+    return values
