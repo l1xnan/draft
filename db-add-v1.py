@@ -6,6 +6,7 @@ from datetime import datetime
 
 import xlwings as wx
 
+
 def get_xlsx_data(pathname, index=0):
     '''
     args:
@@ -37,10 +38,9 @@ def get_xlsx_data(pathname, index=0):
     return values
 
 
-
-# client = MongoClient('mongodb://10.57.0.92:27017')
-# db = client['maple_pds']
-# print('connect maple_pds')
+client = MongoClient('mongodb://10.57.0.92:27017')
+db = client['maple_pds']
+print('connect maple_pds')
 
 values = get_xlsx_data('data/2015-2016-期末-登分表.xlsx')[1:]
 
@@ -76,16 +76,17 @@ for val in values:
         'class_id': cla_id,
         'score': {
             'chinese': {
-                'state': 0 if 0 <= val[5] <= 100 else 1,
+                'state': 0 if type(val[5]) in [int, float] else 1,
                 'final': val[5],
-                'full': 100
+                'full': 100 if gra_id <= 6 else 120,
             },
             'math': {
-                'state': 0 if 0 <= val[5] <= 100 else 1,
+                'state': 0 if type(val[5]) in [int, float] else 1,
                 'final': val[6],
-                'full': 100
+                'full': 100 if gra_id <= 6 else 120,
             },
         },
     }
-    # db.finalexam.insert_one(doc)
+    db.finalexam.replace_one({'_id': doc['_id']}, doc, True)
     print(doc)
+print('=' * 30)
