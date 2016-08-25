@@ -1,8 +1,8 @@
-def score_staging_class(course):
+def score_staging(course):
     condition = [
-        {"$match": {"score." + course + ".state": 0}},
+        {"$match": {"score.math.state": 0}},
         {'$group': {
-            '_id': {"class_id": "$class_id"},
+            '_id': {"grade_id": "$grade_id"},
             'avg': {'$avg': "$score." + course + ".final"},
             'total': {'$sum': 1},
             's1': {'$sum': {'$cond': [{
@@ -40,5 +40,5 @@ def score_staging_class(course):
         }
         },
         {"$sort": {"_id": 1}}]
-#     result = db.finalexam.aggregate(condition)
-    return db.finalexam.aggregate(condition)
+    result = db.finalexam.aggregate(condition)
+    return list(result)
