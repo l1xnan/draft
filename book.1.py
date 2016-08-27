@@ -1,8 +1,8 @@
 # coding: utf-8
 import requests
+import re
 from lxml import etree
 from bs4 import BeautifulSoup
-import re
 from pprint import pprint
 import chardet
 
