@@ -8,33 +8,45 @@ author: pandolia@yeah.net
 
 QQBotVersion = "QQBot-v1.7.2"
 
-import json, os, logging, pickle, sys, time, random, platform, subprocess
-import requests, queue, threading
+import json
+import os
+import logging
+import pickle
+import sys
+import time
+import random
+import platform
+import subprocess
+import requests
+import queue
+import threading
 
-# 'utf8', 'UTF8', 'utf-8', 'utf_8', None are all represent the same encoding
-def codingEqual(coding1, coding2):
-    return coding1 is None or coding2 is None or \
-           coding1.replace('-', '').replace('_', '').lower() == \
-           coding2.replace('-', '').replace('_', '').lower()
+# # 'utf8', 'UTF8', 'utf-8', 'utf_8', None are all represent the same encoding
+# def codingEqual(coding1, coding2):
+#     return coding1 is None or coding2 is None or \
+#            coding1.replace('-', '').replace('_', '').lower() == \
+#            coding2.replace('-', '').replace('_', '').lower()
 
-class CodingWrappedWriter:
-    def __init__(self, coding, writer):
-        self.coding, self.writer = coding, writer
+# class CodingWrappedWriter:
+#     def __init__(self, coding, writer):
+#         self.coding, self.writer = coding, writer
 
-    def write(self, s):
-        return self.writer.write(s.decode(self.coding).encode(self.writer.encoding))
+#     def write(self, s):
+#         # return self.writer.write(s.decode(self.coding).encode(self.writer.encoding))
+#         print("type: %s" % type(s))
+#         return self.writer.write(s.encode(self.writer.encoding))
 
-    def flush(self):
-        return self.writer.flush()
+#     def flush(self):
+#         return self.writer.flush()
 
-# 在 windows consoler 下， 运行 print "中文" 会出现乱码
-# 请使用： utf8_stdout.write("中文\n")
-# 相当于： sys.stdout.write("中文\n".decode('utf8').encode(sys.stdout.encoding))
+# # 在 windows consoler 下， 运行 print "中文" 会出现乱码
+# # 请使用： utf8_stdout.write("中文\n")
+# # 相当于： sys.stdout.write("中文\n".decode('utf8').encode(sys.stdout.encoding))
 
-if codingEqual('utf8', sys.stdout.encoding):
-    utf8_stdout = sys.stdout
-else:
-    utf8_stdout = CodingWrappedWriter('utf8', sys.stdout)
+# if codingEqual('utf8', sys.stdout.encoding):
+#     utf8_stdout = sys.stdout
+# else:
+#     utf8_stdout = CodingWrappedWriter('utf8', sys.stdout)
 
 
 def setLogger():
@@ -42,8 +54,10 @@ def setLogger():
     if not logger.handlers:
         logging.getLogger("").setLevel(logging.CRITICAL)
         logger.setLevel(logging.INFO)
-        ch = logging.StreamHandler(utf8_stdout) # 可以在 windows 下正确输出 utf8 编码的中文字符串
-        ch.setFormatter(logging.Formatter('[%(asctime)s] [%(name)s %(levelname)s] %(message)s'))
+        # 可以在 windows 下正确输出 utf8 编码的中文字符串
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setFormatter(logging.Formatter(
+            '[%(asctime)s] [%(name)s %(levelname)s] %(message)s'))
         logger.addHandler(ch)
     return logger
 
@@ -53,10 +67,13 @@ TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
 if not os.path.exists(TmpDir):
     os.mkdir(TmpDir)
 
+
 class RequestError(Exception):
     pass
 
+
 class QQBot:
+
     def Login(self, qqNum=None):
         if qqNum is None and len(sys.argv) == 2 and sys.argv[1].isdigit():
             qqNum = int(sys.argv[1])
@@ -94,7 +111,8 @@ class QQBot:
         self.testLogin()
 
     def dumpSessionInfo(self):
-        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:-2], self.qqNum))
+        picklePath = os.path.join(TmpDir, '%s-%d.pickle' %
+                                  (QQBotVersion[:-2], self.qqNum))
         try:
             with open(picklePath, 'wb') as f:
                 pickle.dump(self.__dict__, f)
@@ -106,7 +124,8 @@ class QQBot:
         self.pollSession = pickle.loads(pickle.dumps(self.session))
 
     def loadSessionInfo(self, qqNum):
-        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:-2], qqNum))
+        picklePath = os.path.join(TmpDir, '%s-%d.pickle' %
+                                  (QQBotVersion[:-2], qqNum))
         with open(picklePath, 'rb') as f:
             self.__dict__ = pickle.load(f)
             QLogger.info('成功从文件 file://%s 中恢复登录信息' % picklePath)
@@ -118,10 +137,10 @@ class QQBot:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:27.0) Gecko/20100101 Firefox/27.0',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        })    
+        })
         self.urlGet(
-            'https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=16&mibao_css=m_webqq&' + \
-            'appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fw.qq.com%2Fproxy.html&' + \
+            'https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=16&mibao_css=m_webqq&' +
+            'appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fw.qq.com%2Fproxy.html&' +
             'f_url=loginerroralert&strong_login=1&login_state=10&t=20131024001'
         )
         self.session.cookies.update(dict(
@@ -134,22 +153,24 @@ class QQBot:
 
     def getAuthStatus(self):
         return self.urlGet(
-            url = 'https://ssl.ptlogin2.qq.com/ptqrlogin?webqq_type=10&remember_uin=1&login2qq=1&aid=501004106&' + \
-                  'u1=http%3A%2F%2Fw.qq.com%2Fproxy.html%3Flogin2qq%3D1%26webqq_type%3D10&' + \
-                  'ptredirect=0&ptlang=2052&daid=164&from_ui=1&pttype=1&dumy=&fp=loginerroralert&' + \
-                  'action=0-0-' + repr(random.random() * 900000 + 1000000) + \
-                  '&mibao_css=m_webqq&t=undefined&g=1&js_type=0&js_ver=10141&login_sig=&pt_randsalt=0',
-            Referer = 'https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=16&mibao_css=m_webqq&' + \
-                      'appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fw.qq.com%2Fproxy.html&' + \
-                      'f_url=loginerroralert&strong_login=1&login_state=10&t=20131024001'
+            url='https://ssl.ptlogin2.qq.com/ptqrlogin?webqq_type=10&remember_uin=1&login2qq=1&aid=501004106&' +
+            'u1=http%3A%2F%2Fw.qq.com%2Fproxy.html%3Flogin2qq%3D1%26webqq_type%3D10&' +
+            'ptredirect=0&ptlang=2052&daid=164&from_ui=1&pttype=1&dumy=&fp=loginerroralert&' +
+            'action=0-0-' + repr(random.random() * 900000 + 1000000) +
+            '&mibao_css=m_webqq&t=undefined&g=1&js_type=0&js_ver=10141&login_sig=&pt_randsalt=0',
+            Referer='https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=16&mibao_css=m_webqq&' +
+            'appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fw.qq.com%2Fproxy.html&' +
+            'f_url=loginerroralert&strong_login=1&login_state=10&t=20131024001'
         ).text
-    
+
     def getQrcode(self):
         QLogger.info('登录 Step1 - 获取二维码')
         if not hasattr(self, 'qrcodePath'):
-            self.qrcodePath = os.path.join(TmpDir, 'qrcode-%f.png' % time.time())
+            self.qrcodePath = os.path.join(
+                TmpDir, 'qrcode-%f.png' % time.time())
         qrcode = self.urlGet(
-            'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&s=5&d=72&v=4&t=' + repr(random.random())
+            'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&s=5&d=72&v=4&t=' +
+            repr(random.random())
         ).content
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
@@ -157,8 +178,9 @@ class QQBot:
             showImage(self.qrcodePath)
         except:
             QLogger.warning('', exc_info=True)
-            QLogger.warning('自动弹出二维码图片失败，请手动打开图片并用手机QQ扫描，图片地址 file://%s' % self.qrcodePath)
-    
+            QLogger.warning(
+                '自动弹出二维码图片失败，请手动打开图片并用手机QQ扫描，图片地址 file://%s' % self.qrcodePath)
+
     def waitForAuth(self):
         while True:
             time.sleep(3)
@@ -174,7 +196,8 @@ class QQBot:
                 QLogger.warning('二维码已失效, 重新获取二维码')
                 self.getQrcode()
             elif '登录成功' in authStatus:
-                # ptuiCB('0','0','http://ptlogin4.web2.qq.com/check_sig?...','0','登录成功！', 'kingfucking');\r\n"
+                # ptuiCB('0','0','http://ptlogin4.web2.qq.com/check_sig?...','0','登录成功！',
+                # 'kingfucking');\r\n"
                 QLogger.info('已获授权')
                 items = authStatus.split(',')
                 self.nick = items[-1].split("'")[1]
@@ -188,117 +211,129 @@ class QQBot:
                 break
             else:
                 raise Exception('获取二维码扫描状态时出错, html="%s"' % authStatus)
-    
+
     def getPtwebqq(self):
         QLogger.info('登录 Step3 - 获取ptwebqq')
         self.urlGet(self.urlPtwebqq)
         self.ptwebqq = self.session.cookies['ptwebqq']
-    
+
     def getVfwebqq(self):
         QLogger.info('登录 Step4 - 获取vfwebqq')
         self.vfwebqq = self.smartRequest(
-            url = 'http://s.web2.qq.com/api/getvfwebqq?ptwebqq=%s&clientid=%s&psessionid=&t=%s' % \
-                  (self.ptwebqq, self.clientid, repr(random.random())),
-            Referer = 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1',
-            Origin = 'http://s.web2.qq.com'
-        )['vfwebqq']#.encode('utf8')
-    
+            url='http://s.web2.qq.com/api/getvfwebqq?ptwebqq=%s&clientid=%s&psessionid=&t=%s' %
+            (self.ptwebqq, self.clientid, repr(random.random())),
+            Referer='http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1',
+            Origin='http://s.web2.qq.com'
+        )['vfwebqq']  # .encode('utf8')
+
     def getUinAndPsessionid(self):
         QLogger.info('登录 Step5 - 获取uin和psessionid')
         result = self.smartRequest(
-            url = 'http://d1.web2.qq.com/channel/login2',
-            data = {
+            url='http://d1.web2.qq.com/channel/login2',
+            data={
                 'r': json.dumps({
-                    "ptwebqq":self.ptwebqq, "clientid":self.clientid, "psessionid":"", "status":"online"
+                    "ptwebqq": self.ptwebqq, "clientid": self.clientid, "psessionid": "", "status": "online"
                 })
             },
-            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2',
-            Origin = 'http://d1.web2.qq.com'
+            Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2',
+            Origin='http://d1.web2.qq.com'
         )
         self.uin = result['uin']
-        self.psessionid = result['psessionid']#.encode('utf8')
+        self.psessionid = result['psessionid']  # .encode('utf8')
         self.hash = qHash(self.uin, self.ptwebqq)
 
     def testLogin(self):
         # 请求一下 get_online_buddies 页面，似乎可以避免103错误。若请求无错误发生，则表明登录成功
         self.smartRequest(
-            url = 'http://d1.web2.qq.com/channel/get_online_buddies2?vfwebqq=%s&clientid=%d&psessionid=%s&t=%s' % \
-                  (self.vfwebqq, self.clientid, self.psessionid, repr(random.random())),
-            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2',
-            Origin = 'http://d1.web2.qq.com',
-            repeatOnDeny = 0
+            url='http://d1.web2.qq.com/channel/get_online_buddies2?vfwebqq=%s&clientid=%d&psessionid=%s&t=%s' %
+            (self.vfwebqq, self.clientid,
+             self.psessionid, repr(random.random())),
+            Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2',
+            Origin='http://d1.web2.qq.com',
+            repeatOnDeny=0
         )
 
     def fetchBuddy(self):
         QLogger.info('登录 Step6 - 获取好友列表')
         result = self.smartRequest(
-            url = 'http://s.web2.qq.com/api/get_user_friends2',
-            data = {'r': json.dumps({"vfwebqq":self.vfwebqq, "hash":self.hash})},
-            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+            url='http://s.web2.qq.com/api/get_user_friends2',
+            data={'r': json.dumps(
+                {"vfwebqq": self.vfwebqq, "hash": self.hash})},
+            Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         buddies = result['info']
-        self.buddy = tuple((buddy['uin'], buddy['nick'].encode('utf-8')) for buddy in buddies)
+        # self.buddy = tuple((buddy['uin'], buddy['nick'].encode('utf-8')) for buddy in buddies)
+        self.buddy = tuple((buddy['uin'], buddy['nick']) for buddy in buddies)
         self.buddyStr = '好友列表:\n' + idNameList2Str(self.buddy)
+        self.autoReplyNames = []
         QLogger.info('获取朋友列表成功，共 %d 个朋友' % len(self.buddy))
 
     def fetchGroup(self):
         QLogger.info('登录 Step7 - 获取群列表')
         result = self.smartRequest(
-            url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
-            data = {'r': json.dumps({"vfwebqq":self.vfwebqq, "hash":self.hash})},
-            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+            url='http://s.web2.qq.com/api/get_group_name_list_mask2',
+            data={'r': json.dumps(
+                {"vfwebqq": self.vfwebqq, "hash": self.hash})},
+            Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         groups = result['gnamelist']
-        self.group = tuple((group['gid'], group['name'].encode('utf-8')) for group in groups)
+        self.group = tuple(
+            (group['gid'], group['name'].encode('utf-8')) for group in groups)
         self.groupStr = '讨论组列表:\n' + idNameList2Str(self.group)
         QLogger.info('获取群列表成功，共 %d 个群' % len(self.group))
 
     def fetchDiscuss(self):
         QLogger.info('登录 Step8 - 获取讨论组列表')
         result = self.smartRequest(
-            url = 'http://s.web2.qq.com/api/get_discus_list?clientid=%s&psessionid=%s&vfwebqq=%s&t=%s' % \
-                  (self.clientid, self.psessionid, self.vfwebqq, repr(random.random())),
-            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+            url='http://s.web2.qq.com/api/get_discus_list?clientid=%s&psessionid=%s&vfwebqq=%s&t=%s' %
+            (self.clientid, self.psessionid,
+             self.vfwebqq, repr(random.random())),
+            Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         discusses = result['dnamelist']
-        self.discuss = tuple((discuss['did'], discuss['name'].encode('utf-8')) for discuss in discusses)
+        self.discuss = tuple(
+            (discuss['did'], discuss['name'].encode('utf-8')) for discuss in discusses)
         self.discussStr = '讨论组列表:\n' + idNameList2Str(self.discuss)
         QLogger.info('获取讨论组列表成功，共 %d 个讨论组' % len(self.discuss))
-    
+
     def refetch(self):
         self.fetchBuddy()
         self.fetchGroup()
         self.fetchDiscuss()
-        self.nick = self.getBuddyDetailInfo(self.uin)['nick']#.encode('utf8')
-    
+        self.nick = self.getBuddyDetailInfo(
+            self.uin)['nick']  # .encode('utf8')
+
     def getBuddyDetailInfo(self, buddy_uin):
         return self.smartRequest(
-            url = 'http://s.web2.qq.com/api/get_friend_info2?tuin={uin}'.format(uin=buddy_uin) + \
-                  '&vfwebqq={vfwebqq}&clientid=53999199&psessionid={psessionid}&t=0.1'.format(**self.__dict__),
-            Referer = 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1'
+            url='http://s.web2.qq.com/api/get_friend_info2?tuin={uin}'.format(uin=buddy_uin) +
+            '&vfwebqq={vfwebqq}&clientid=53999199&psessionid={psessionid}&t=0.1'.format(
+                **self.__dict__),
+            Referer='http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1'
         )
 
     def poll(self):
         result = self.smartRequest(
-            url = 'http://d1.web2.qq.com/channel/poll2',
-            data = {
+            url='http://d1.web2.qq.com/channel/poll2',
+            data={
                 'r': json.dumps({
-                    "ptwebqq":self.ptwebqq, "clientid":self.clientid,
-                    "psessionid":self.psessionid, "key":""
+                    "ptwebqq": self.ptwebqq, "clientid": self.clientid,
+                    "psessionid": self.psessionid, "key": ""
                 })
             },
-            sessionObj = self.pollSession,
-            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+            sessionObj=self.pollSession,
+            Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         if 'errmsg' in result:
             pollResult = ('', 0, 0, '')  # 无消息
         else:
             result = result[0]
-            msgType = {'message':'buddy', 'group_message':'group', 'discu_message':'discuss'}[result['poll_type']]
+            msgType = {'message': 'buddy', 'group_message': 'group',
+                       'discu_message': 'discuss'}[result['poll_type']]
             from_uin = result['value']['from_uin']
             buddy_uin = result['value'].get('send_uin', from_uin)
             msg = ''.join(
-                m if isinstance(m, str) else "[face%d]" % m[1] if isinstance(m, list) else ''\
+                m if isinstance(m, str) else "[face%d]" % m[
+                    1] if isinstance(m, list) else ''
                 for m in result['value']['content'][1:]
             )
             pollResult = msgType, from_uin, buddy_uin, msg
@@ -307,7 +342,9 @@ class QQBot:
             else:
                 QLogger.info('来自 %s%d(buddy%d) 的消息: <%s>' % pollResult)
         return pollResult
-    
+
+
+
     def send(self, msgType, to_uin, msg):
         while msg:
             front, msg = utf8Partition(msg, 600)
@@ -322,15 +359,16 @@ class QQBot:
             'group': 'http://d1.web2.qq.com/channel/send_qun_msg2',
             'discuss': 'http://d1.web2.qq.com/channel/send_discu_msg2'
         }
-        sendTag = {"buddy":"to", "group":"group_uin", "discuss":"did"}
+        sendTag = {"buddy": "to", "group": "group_uin", "discuss": "did"}
         self.smartRequest(
-            url = sendUrl[msgType], 
-            data = {
+            url=sendUrl[msgType],
+            data={
                 'r': json.dumps({
                     sendTag[msgType]: to_uin,
                     "content": json.dumps([
                         msg,
-                        ["font", {"name": "宋体", "size": 10, "style": [0,0,0], "color": "000000"}]
+                        ["font", {"name": "宋体", "size": 10,
+                                  "style": [0, 0, 0], "color": "000000"}]
                     ]),
                     "face": 522,
                     "clientid": self.clientid,
@@ -338,15 +376,15 @@ class QQBot:
                     "psessionid": self.psessionid
                 })
             },
-            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
-        )        
+            Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+        )
         QLogger.info('向 %s%s 发送消息成功' % (msgType, to_uin))
         if not self.stopped:
             if self.msgId % 10 == 0:
                 QLogger.info('已连续发送10条消息，强制 sleep 10秒，请等待...')
                 time.sleep(10)
             else:
-                time.sleep(random.randint(3,5))
+                time.sleep(random.randint(3, 5))
 
     def urlGet(self, url, **kw):
         time.sleep(0.2)
@@ -362,9 +400,9 @@ class QQBot:
             session.headers.update(**kw)
             try:
                 if data is None:
-                    html = session.get(url).text#content
+                    html = session.get(url).text  # content
                 else:
-                    html = session.post(url, data=data).text#content
+                    html = session.post(url, data=data).text  # content
                 result = json.loads(html)
             except (requests.ConnectionError, ValueError):
                 i += 1
@@ -377,7 +415,8 @@ class QQBot:
                 else:
                     j += 1
                     errorInfo = '请求被拒绝错误'
-            errMsg = '第%d次请求“%s”时出现“%s”，html=%s' % (i+j, url, errorInfo, html)
+            errMsg = '第%d次请求“%s”时出现“%s”，html=%s' % (
+                i + j, url, errorInfo, html)
 
             # 出现网络错误可以多试几次；若网络没问题，但 retcode 有误，一般连续 3 次都出错就没必要再试了
             if i <= 5 and j <= repeatOnDeny:
@@ -387,7 +426,8 @@ class QQBot:
                 QLogger.warning(errMsg + '！停止再次请求！！！')
                 raise RequestError
 
-    # class attribut `helpInfo` will be printed at the beginning of `Run` method   
+    # class attribut `helpInfo` will be printed at the beginning of `Run`
+    # method
     helpInfo = '帮助命令："-help"'
 
     def Run(self):
@@ -397,12 +437,12 @@ class QQBot:
         pullThread = threading.Thread(target=self.pullForever)
         pullThread.setDaemon(True)
         pullThread.start()
-        
+
         QLogger.info(
-            'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
+            'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' %
             (self.nick, self.qqNum, self.__class__.__dict__.get('helpInfo', ''))
-        )        
-        
+        )
+
         while not self.stopped:
             try:
                 pullResult = self.msgQueue.get()
@@ -417,7 +457,7 @@ class QQBot:
             except:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' onPollComplete 方法出错，已忽略')
-        
+
         if self.stopped:
             QLogger.info("QQBot正常退出")
         else:
@@ -439,9 +479,19 @@ class QQBot:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' poll 方法出错，已忽略')
 
-    # overload this method to build your own QQ-bot.    
+    # overload this method to build your own QQ-bot.
+    def autoReply(self, msg):
+        APIKEY = 'b43cdbb95d0b4ebfb1291aa43c5c8c59'
+        json = {
+            "key": APIKEY,
+            "info": msg,
+        }
+        req = requests.post('http://www.tuling123.com/openapi/api', json)
+        reply = req.json()['text']
+        return reply
+
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
-        reply = ''    
+        reply = ''
         if message == '-help':
             reply = '欢迎使用QQBot，使用方法：\n' + \
                     '\t-help\n' + \
@@ -450,10 +500,10 @@ class QQBot:
                     '\t-refetch\n' + \
                     '\t-stop\n'
         elif message[:6] == '-list ':
-            reply = getattr(self, message[6:].strip()+'Str', '')
+            reply = getattr(self, message[6:].strip() + 'Str', '')
         elif message[:6] == '-send ':
             args = message[6:].split(' ', 2)
-            if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:               
+            if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:
                 self.send(args[0], int(args[1]), args[2].strip())
                 reply = '消息发送成功'
         elif message == '-refetch':
@@ -462,9 +512,32 @@ class QQBot:
         elif message == '-stop':
             reply = 'QQBot已关闭'
             self.stopped = True
+        elif message[:6] == '-find ':
+            name = message[6:]
+            uins = list(filter(lambda ibuddy: name in ibuddy[1], self.buddy))
+            reply = str(uins)
+            print(reply)
+        elif message[:6] == '-auto ':
+            auto_uin = message[6:]
+            self.autoReplyNames = self.autoReplyNames + [message[6:]]
+        elif message[:6] == '-code ':
+            code = message[6:]
+            print(code)
+            reply = eval(code)
+            print(reply)
+        # 自动回复
+        elif str(from_uin) in self.autoReplyNames:
+            print('自动回复的msg: %s' % message)
+            reply = self.autoReply(message)
+            
+        else:
+            print(message)
         self.send(msgType, from_uin, reply)
+        print(from_uin, self.autoReplyNames)
 
 # $filename must be an utf8 string
+
+
 def showImage(filename):
     osName = platform.system()
     if osName == 'Windows':
@@ -479,33 +552,37 @@ def showImage(filename):
     if retcode:
         raise
 
+
 def idNameList2Str(idNames):
-    return '\n'.join('\t%d, %s (%d)' % (i,el[1],el[0]) for i,el in enumerate(idNames))
+    return '\n'.join('\t%d, %s (%d)' % (i, el[1], el[0]) for i, el in enumerate(idNames))
+
 
 def qHash(x, K):
     N = [0] * 4
     for T in range(len(K)):
-        N[T%4] ^= ord(K[T])
+        N[T % 4] ^= ord(K[T])
 
     U = "ECOK"
-    V = [0] * 4    
+    V = [0] * 4
     V[0] = ((x >> 24) & 255) ^ ord(U[0])
     V[1] = ((x >> 16) & 255) ^ ord(U[1])
-    V[2] = ((x >>  8) & 255) ^ ord(U[2])
-    V[3] = ((x >>  0) & 255) ^ ord(U[3])
+    V[2] = ((x >> 8) & 255) ^ ord(U[2])
+    V[3] = ((x >> 0) & 255) ^ ord(U[3])
 
     U1 = [0] * 8
 
     for T in range(8):
         U1[T] = N[T >> 1] if T % 2 == 0 else V[T >> 1]
 
-    N1 = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
+    N1 = ["0", "1", "2", "3", "4", "5", "6", "7",
+          "8", "9", "A", "B", "C", "D", "E", "F"]
     V1 = ""
     for aU1 in U1:
         V1 += N1[((aU1 >> 4) & 15)]
         V1 += N1[((aU1 >> 0) & 15)]
 
     return V1
+
 
 def utf8Partition(msg, n):
     if n >= len(msg):
@@ -516,6 +593,7 @@ def utf8Partition(msg, n):
             n -= 1
         return msg[:n], msg[n:]
 
+
 def main():
     bot = QQBot()
     bot.Login()
@@ -524,3 +602,4 @@ def main():
 if __name__ == '__main__':
     # pass
     main()
+    pass
