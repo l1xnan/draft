@@ -483,7 +483,9 @@ class QQBot:
         return reply
 
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
+
         reply = ''
+
         if message == '-help':
             reply = '欢迎使用QQBot，使用方法：\n' + \
                     '\t-help\n' + \
@@ -592,6 +594,5 @@ def main():
     bot.Run()
 
 if __name__ == '__main__':
-    # pass
     main()
-    pass
+
