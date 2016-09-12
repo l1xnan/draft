@@ -8,47 +8,37 @@ author: pandolia@yeah.net
 
 QQBotVersion = "QQBot-v1.7.2"
 
-import json
-import os
-import logging
-import pickle
-import sys
-import time
-import random
-import platform
-import subprocess
-import requests
-import queue
-import threading
+import json, os, logging, pickle, sys, time, random, platform, subprocess
+import requests, queue, threading
 
-# # 'utf8', 'UTF8', 'utf-8', 'utf_8', None are all represent the same encoding
-# def codingEqual(coding1, coding2):
-#     return coding1 is None or coding2 is None or \
-#            coding1.replace('-', '').replace('_', '').lower() == \
-#            coding2.replace('-', '').replace('_', '').lower()
+# 'utf8', 'UTF8', 'utf-8', 'utf_8', None are all represent the same encoding
+def codingEqual(coding1, coding2):
+    return coding1 is None or coding2 is None or \
+           coding1.replace('-', '').replace('_', '').lower() == \
+           coding2.replace('-', '').replace('_', '').lower()
 
-# class CodingWrappedWriter:
-#     def __init__(self, coding, writer):
-#         self.coding, self.writer = coding, writer
+class CodingWrappedWriter:
+    def __init__(self, coding, writer):
+        self.coding, self.writer = coding, writer
 
-#     def write(self, s):
-#         # return self.writer.write(s.decode(self.coding).encode(self.writer.encoding))
-#         print("type: %s" % type(s))
-#         return self.writer.write(s.encode(self.writer.encoding))
+    def write(self, s):
+        return self.writer.write(s.decode(self.coding).encode(self.writer.encoding))
 
-#     def flush(self):
-#         return self.writer.flush()
+    def flush(self):
+        return self.writer.flush()
 
-# # 在 windows consoler 下， 运行 print "中文" 会出现乱码
-# # 请使用： utf8_stdout.write("中文\n")
-# # 相当于： sys.stdout.write("中文\n".decode('utf8').encode(sys.stdout.encoding))
-
-# if codingEqual('utf8', sys.stdout.encoding):
-#     utf8_stdout = sys.stdout
-# else:
-#     utf8_stdout = CodingWrappedWriter('utf8', sys.stdout)
+# 在 windows consoler 下， 运行 print "中文" 会出现乱码
+# 请使用： utf8_stdout.write("中文\n")
+# 相当于： sys.stdout.write("中文\n".decode('utf8').encode(sys.stdout.encoding))
+print('中文',sys.stdout.encoding)
+if codingEqual('utf8', sys.stdout.encoding):
+    print('TRUE')
+    utf8_stdout = sys.stdout
+else:
+    utf8_stdout = CodingWrappedWriter('utf8', sys.stdout)
 
 
+print(utf8_stdout)
 def setLogger():
     logger = logging.getLogger(QQBotVersion)
     if not logger.handlers:
@@ -262,8 +252,10 @@ class QQBot:
             Referer='http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         buddies = result['info']
+
         # self.buddy = tuple((buddy['uin'], buddy['nick'].encode('utf-8')) for buddy in buddies)
         self.buddy = tuple((buddy['uin'], buddy['nick']) for buddy in buddies)
+
         self.buddyStr = '好友列表:\n' + idNameList2Str(self.buddy)
         self.autoReplyNames = []
         QLogger.info('获取朋友列表成功，共 %d 个朋友' % len(self.buddy))
